@@ -1,8 +1,6 @@
 # spec file for package python-saline
 
-%define pythons python3
-
-%{?!python_module:%define python_module() python3-%{**}}
+%define plainpython python
 
 %define salt_formulas_dir %{_datadir}/salt-formulas
 
@@ -18,7 +16,12 @@ BuildArch:      noarch
 BuildRequires:  fdupes
 BuildRequires:  python-rpm-macros
 BuildRequires:  systemd-rpm-macros
-BuildRequires:  %{python_module base}
+BuildRequires:  %{python_module base >= 3.6}
+BuildRequires:  %{python_module setuptools}
+BuildRequires:  %{python_module packaging}
+BuildRequires:  %{python_module pip}
+BuildRequires:  %{python_module wheel}
+Requires:       %plainpython(abi) = %{python_version}
 Requires:       python-CherryPy
 Requires:       python-python-dateutil
 Requires:       python-salt
@@ -61,9 +64,14 @@ Saline salt formula for Uyuni/SUSE Manager with exporters configuration and dash
 %autosetup -n saline-%{version}
 
 %build
-%python_build
+#%%python_build
+%pyproject_wheel
 
 %install
+%pyproject_install
+%python_clone -a %{buildroot}%{_bindir}/salined
+%python_expand %fdupes %{buildroot}%{$python_sitelib}
+
 install -Dpm 0644 salined.service %{buildroot}%{_unitdir}/salined.service
 
 install -Ddm 0755 %{buildroot}%{_sbindir}
@@ -81,13 +89,6 @@ install -Dpm 0644 conf/salt/saline.d/*.conf %{buildroot}%{_sysconfdir}/salt/sali
 install -Ddm 0755 %{buildroot}%{_sysconfdir}/salt/pki/saline
 
 install -Ddm 0755 %{buildroot}%{_sysconfdir}/alternatives
-%{python_expand %$python_install
-mv %{buildroot}%{_bindir}/salined %{buildroot}%{_bindir}/salined-%{$python_bin_suffix}
-}
-%prepare_alternative salined
-%{python_expand \
-%fdupes %{buildroot}%{$python_sitelib}
-}
 
 install -Ddm 0755 %{buildroot}%{salt_formulas_dir}/metadata
 install -Ddm 0755 %{buildroot}%{salt_formulas_dir}/states
@@ -120,19 +121,19 @@ cp -a formulas/states/* %{buildroot}%{salt_formulas_dir}/states/
 %files -n saline
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/logrotate.d/saline
-%dir %{_sysconfdir}/salt/saline.d
-%config %{_sysconfdir}/salt/saline
-%config %{_sysconfdir}/salt/saline.d/*.conf
-%dir %{_sysconfdir}/salt/pki/saline
-%ghost %config %{_sysconfdir}/salt/pki/saline/uyuni.crt
-%ghost %config %{_sysconfdir}/salt/pki/saline/uyuni.key
+%dir %attr(0750,salt,salt) %{_sysconfdir}/salt/saline.d
+%config %attr(0640,salt,salt) %{_sysconfdir}/salt/saline
+%config %attr(0640,salt,salt) %{_sysconfdir}/salt/saline.d/*.conf
+%dir %attr(0750,salt,salt) %{_sysconfdir}/salt/pki/saline
+%ghost %config %attr(0600,salt,salt) %{_sysconfdir}/salt/pki/saline/uyuni.crt
+%ghost %config %attr(0600,salt,salt) %{_sysconfdir}/salt/pki/saline/uyuni.key
 %{_sbindir}/saline-setup
 %{_sbindir}/rcsalined
 %{_unitdir}/salined.service
-%ghost %dir /var/log/salt
-%ghost /var/log/salt/saline
-%ghost /var/log/salt/saline-api-access.log
-%ghost /var/log/salt/saline-api-error.log
+%ghost %dir %attr(0750,salt,salt) /var/log/salt
+%ghost %attr(0640,salt,salt) /var/log/salt/saline
+%ghost %attr(0640,salt,salt) /var/log/salt/saline-api-access.log
+%ghost %attr(0640,salt,salt) /var/log/salt/saline-api-error.log
 
 %files -n saline-formula
 %dir %{salt_formulas_dir}
