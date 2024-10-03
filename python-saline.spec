@@ -8,7 +8,7 @@ Name:           python-saline
 Version:        0
 Release:        0
 Summary:        The salt events collector and manager python module
-License:        GPL-2.0+
+License:        Apache-2.0
 Group:          Development/Languages/Python
 URL:            https://github.com/vzhestkov/saline
 Source0:        saline-%{version}.tar.gz
@@ -114,6 +114,7 @@ cp -a formulas/states/* %{buildroot}%{salt_formulas_dir}/states/
 %service_del_postun_with_restart salined.service
 
 %files %python_files
+%license LICENSE
 %defattr(-,root,root,-)
 %python_alternative %{_bindir}/salined
 %{python_sitelib}/saline*

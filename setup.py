@@ -30,6 +30,6 @@ setup(
     author_email="vzhestkov@gmail.com",
     version=str(Version(get_saline_version())),
     packages=find_packages(),
-    license="GPL-2.0",
+    license="Apache-2.0",
     scripts=["salined"],
 )
