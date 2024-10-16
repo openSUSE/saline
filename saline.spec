@@ -1,16 +1,22 @@
 # spec file for package python-saline
 
+%if 0%{?suse_version} > 1500
+%bcond_without libalternatives
+%else
+%bcond_with libalternatives
+%endif
+
 %define plainpython python
 
 %define salt_formulas_dir %{_datadir}/salt-formulas
 
-Name:           python-saline
+Name:           saline
 Version:        0
 Release:        0
-Summary:        The salt events collector and manager python module
+Summary:        The salt events collector and manager
 License:        Apache-2.0
 Group:          Development/Languages/Python
-URL:            https://github.com/vzhestkov/saline
+URL:            https://github.com/openSUSE/saline
 Source0:        saline-%{version}.tar.gz
 BuildArch:      noarch
 BuildRequires:  fdupes
@@ -21,50 +27,55 @@ BuildRequires:  %{python_module setuptools}
 BuildRequires:  %{python_module packaging}
 BuildRequires:  %{python_module pip}
 BuildRequires:  %{python_module wheel}
+Requires(pre):  salt
+Requires:       salined = %{version}-%{release}
+Requires:       logrotate
+Requires:       salt-master
+Requires:       systemd
+%define python_subpackage_only 1
+%python_subpackages
+
+%description
+Saline is an extension for Salt providing an extra control of state apply process.
+Saline also exposes the metrics from salt events to provide more visible salt monitoring.
+
+%package -n python-saline
+Summary:        The salt events collector and manager python module
+Group:          System/Management
 Requires:       %plainpython(abi) = %{python_version}
 Requires:       python-CherryPy
 Requires:       python-python-dateutil
 Requires:       python-salt
-Requires:       config(saline) = %{version}-%{release}
+Requires:       config(%{name}) = %{version}-%{release}
+%if %{with libalternatives}
+Requires:       alts
+BuildRequires:  alts
+%else
 Requires(post): update-alternatives
 Requires(postun):update-alternatives
-Provides:       saline(module-python) = %{version}-%{release}
-BuildRoot:      %{_tmppath}/saline-%{version}
-%python_subpackages
+%endif
+Provides:       salined = %{version}-%{release}
+BuildRoot:      %{_tmppath}/%{name}-%{version}
 
-%description
+%description -n python-saline
 Saline python library.
 
 Saline is an extension for Salt providing an extra control of state apply process.
 Saline also exposes the metrics from salt events to provide more visible salt monitoring.
 
-%package -n saline
-Summary:        The salt events collector and manager
-Group:          System/Management
-Requires(pre):  salt
-Requires:       logrotate
-Requires:       salt-master
-Requires:       systemd
-Requires:       saline(module-python) = %{version}-%{release}
-
-%description -n saline
-Saline is an extension for Salt providing an extra control of state apply process.
-Saline also exposes the metrics from salt events to provide more visible salt monitoring.
-
-%package -n saline-formula
+%package formula
 Summary:        Saline salt formula for Uyuni/SUSE Manager
 Group:          System/Management
 Requires:       grafana-formula
 Requires:       prometheus-exporters-formula
 
-%description -n saline-formula
+%description formula
 Saline salt formula for Uyuni/SUSE Manager with exporters configuration and dashboards.
 
 %prep
-%autosetup -n saline-%{version}
+%autosetup -n %{name}-%{version}
 
 %build
-#%%python_build
 %pyproject_wheel
 
 %install
@@ -95,31 +106,29 @@ install -Ddm 0755 %{buildroot}%{salt_formulas_dir}/states
 cp -a formulas/metadata/* %{buildroot}%{salt_formulas_dir}/metadata/
 cp -a formulas/states/* %{buildroot}%{salt_formulas_dir}/states/
 
-%pre -n saline
+%pre
 %service_add_pre salined.service
 
-%preun -n saline
+%preun
 %service_del_preun salined.service
 
 %post
-%python_install_alternative salined
-
-%post -n saline
 %service_add_post salined.service
 
 %postun
-%python_uninstall_alternative salined
-
-%postun -n saline
 %service_del_postun_with_restart salined.service
 
-%files %python_files
-%license LICENSE
-%defattr(-,root,root,-)
-%python_alternative %{_bindir}/salined
-%{python_sitelib}/saline*
+%pre -n python-saline
+# If libalternatives is used: Removing old update-alternatives entries.
+%python_libalternatives_reset_alternative salined
 
-%files -n saline
+%post -n python-saline
+%python_install_alternative salined
+
+%postun -n python-saline
+%python_uninstall_alternative salined
+
+%files
 %defattr(-,root,root,-)
 %config(noreplace) %{_sysconfdir}/logrotate.d/saline
 %dir %attr(0750,salt,salt) %{_sysconfdir}/salt/saline.d
@@ -136,11 +145,17 @@ cp -a formulas/states/* %{buildroot}%{salt_formulas_dir}/states/
 %ghost %attr(0640,salt,salt) /var/log/salt/saline-api-access.log
 %ghost %attr(0640,salt,salt) /var/log/salt/saline-api-error.log
 
-%files -n saline-formula
+%files formula
 %dir %{salt_formulas_dir}
 %dir %{salt_formulas_dir}/metadata
 %dir %{salt_formulas_dir}/states
 %{salt_formulas_dir}/metadata/saline-*
 %{salt_formulas_dir}/states/saline-*
+
+%files %{python_files saline}
+%license LICENSE
+%defattr(-,root,root,-)
+%python_alternative %{_bindir}/salined
+%{python_sitelib}/saline*
 
 %changelog
