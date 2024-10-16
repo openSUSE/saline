@@ -1,5 +1,8 @@
 # spec file for package python-saline
 
+%{?sle15allpythons}
+%define skip_python2 1
+
 %if 0%{?suse_version} > 1500
 %bcond_without libalternatives
 %else
