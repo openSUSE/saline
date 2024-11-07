@@ -31,11 +31,18 @@ class EventParser:
 
         self.sls_rules = []
         self.sid_rules = []
+        self.mod_rules = []
 
-        for k, v in opts.get("rename_rules", {}).get("sls", {}).items():
-            self.sls_rules.append((re.compile(k), v))
-        for k, v in opts.get("rename_rules", {}).get("sid", {}).items():
-            self.sid_rules.append((re.compile(k), v))
+        for rule_set in ("sls", "sid", "mod"):
+            dst_list = getattr(self, f"{rule_set}_rules")
+            for k, v in opts.get("rename_rules", {}).get(rule_set, {}).items():
+                dst_list.append((re.compile(k), v))
+
+    def __rule_merge(self, rule_set, v):
+        for p, r in getattr(self, f"{rule_set}_rules"):
+            if p.match(v):
+                return r
+        return v
 
     def parse(self, tag, data):
         """
@@ -122,13 +129,18 @@ class EventParser:
         ):
             fun_args = data.get("fun_args", data.get("arg", None))
             if fun_args is not None:
-                args = parse_state_fun_args(fun_args)
+                args, kwargs = parse_state_fun_args(fun_args)
+                args = (
+                    *[
+                        self.__rule_merge("mod", x) for x in args
+                    ],
+                )
                 parsed_data["state_fun_args"] = (
                     fun,
-                    args[0],
-                    args[1].get("test", False) is True,
+                    args,
+                    kwargs.get("test", False) is True,
                 )
-                if (args[1].get("test", False) is True) or fun == "state.test":
+                if (kwargs.get("test", False) is True) or fun == "state.test":
                     parsed_data["test"] = True
 
         if (
@@ -156,23 +168,18 @@ class EventParser:
                     sls = ret.get("__sls__")
                     if sls:
                         _sls = sls.replace("/", ".")
+                        _sls = self.__rule_merge("sls", _sls)
                         if sls != _sls:
                             ret["__sls__"] = _sls
                             ret["__sls_orig__"] = sls
-                        for p, r in self.sls_rules:
-                            if p.match(_sls):
-                                ret["__sls__"] = r
-                                ret["__sls_orig__"] = sls
-                                break
                     sid = ret.get("__id__", state_id)
                     if sid:
                         if "__id__" not in ret:
                             ret["__id__"] = sid
-                        for p, r in self.sid_rules:
-                            if p.match(sid):
-                                ret["__id__"] = r
-                                ret["__id_orig__"] = sid
-                                break
+                        _sid = self.__rule_merge("sid", sid)
+                        if sid != _sid:
+                            ret["__id__"] = _sid
+                            ret["__id_orig__"] = sid
                     ret["fun"] = state_fun
                     result = ret.get("result")
                     if ret.get("__state_ran__") is False:
