@@ -279,6 +279,8 @@ def parse_state_fun_args(fun_args):
             pkwargs = parse_input_args([arg], condition=False)[1]
             if pkwargs:
                 kwargs.update(pkwargs)
+            elif isinstance(arg, (list, tuple)):
+                args.extend(arg)
             else:
                 args.append(arg)
 
@@ -287,7 +289,11 @@ def parse_state_fun_args(fun_args):
         args = [args]
     args = (
         *[
-            x if x.startswith("/") else x.replace("/", ".")
+            (
+                x.replace("/", ".")
+                if isinstance(x, str) and not x.startswith("/")
+                else tuple(x) if isinstance(x, list) else x
+            )
             for x in args
         ],
     )
