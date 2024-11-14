@@ -12,6 +12,7 @@ from saline.data.parser import (
     EventTags,
     IGNORE_EVENTS,
     IGNORE_NO_FUN_WARNING,
+    STATE_FUNCS,
     STATE_RESULTS,
 )
 
@@ -146,8 +147,7 @@ class EventParser:
         if (
             tag_main == EventTags.SALT_JOB
             and tag_sub == EventTags.SALT_JOB_RET
-            and fun
-            and fun.startswith("state.")
+            and fun in STATE_FUNCS
             and "return" in data
             and isinstance(data["return"], (dict, list))
         ):

@@ -64,6 +64,21 @@ IGNORE_NO_FUN_WARNING = (
     (EventTags.SUMA_PXE_UPDATE, None),
 )
 
+STATE_FUNCS = (
+    "state.apply",
+    "state.high",
+    "state.highstate",
+    "state.low",
+    "state.pkg",
+    "state.template",
+    "state.template_str",
+    "state.test",
+    "state.top",
+    "state.single",
+    "state.sls",
+    "state.sls_id",
+)
+
 STATE_RESULTS = (
     (True, "succeeded"),
     (False, "failed"),

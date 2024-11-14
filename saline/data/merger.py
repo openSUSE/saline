@@ -4,7 +4,7 @@ from time import time
 
 from saline.data.metrics import Metrics, MetricsCollection
 from saline.data.minion import MinionsCollection
-from saline.data.parser import EventTags
+from saline.data.parser import EventTags, STATE_FUNCS
 from saline.data.smart import MergeWrapper
 from saline.data.state import StateJobCollection, JobStatus
 
@@ -36,20 +36,6 @@ class DataMerger:
             new_rules_callback=self._new_merge_rules,
             new_rules_callback_opts=("sls",),
             merge_callback=self._merge_sls,
-        )
-        self._state_funcs = (
-            "state.apply",
-            "state.high",
-            "state.highstate",
-            "state.low",
-            "state.pkg",
-            "state.template",
-            "state.template_str",
-            "state.test",
-            "state.top",
-            "state.single",
-            "state.sls",
-            "state.sls_id",
         )
 
     def _get_sls_id_fun_status(self, sls, sid, fun, status):
@@ -246,7 +232,7 @@ class DataMerger:
                 tag_main == EventTags.SALT_JOB
                 and tag_sub in (EventTags.SALT_JOB_NEW, EventTags.SALT_JOB_RET)
             ):
-                if fun in self._state_funcs and data.get("offline", False) is False:
+                if fun in STATE_FUNCS and data.get("offline", False) is False:
                     self._add_state(data, tag_sub, ts)
                 else:
                     minions = []
