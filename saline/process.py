@@ -1,4 +1,3 @@
-import cherrypy
 import contextlib
 import logging
 import os
@@ -83,7 +82,7 @@ class Saline(SignalHandlingProcess):
                     ),
                 )
             self.process_manager.add_process(
-                CherryPySrv,
+                TornadoSrv,
                 args=(self.opts,),
             )
 
@@ -438,46 +437,37 @@ class EventsReader(SignalHandlingProcess):
         sys.exit(0)
 
 
-class CherryPySrv(SignalHandlingProcess):
+class TornadoSrv(SignalHandlingProcess):
     """
-    The Saline CherryPy Server process
+    The Saline Tornado Server process
     """
 
     def __init__(self, opts, **kwargs):
         """
-        Create a Saline CherryPy Server instance
+        Create a Saline Tornado Server instance
 
         :param dict opts: The Saline options
         """
 
         super().__init__()
 
-        self.name = "CherryPySrv"
+        self.name = "TornadoSrv"
 
         self.opts = opts
 
     def run(self):
         """
-        Turn on the Saline CherryPy Server components
+        Turn on the Saline Tornado Server components
         """
 
-        log.info("Running Saline CherryPy Server")
+        log.info("Running Saline Tornado Server")
 
-        self.cherrypy_server(self.opts)
-
-    def cherrypy_server(self, opts):
-        """
-        Saline CherryPy Server routine processing the external requests
-
-        :param dict opts: The Saline options
-        """
-
-        root, apiopts, conf = restapi.get_app(opts)
+        apiopts = self.opts.get("restapi", {})
 
         if not apiopts.get("disable_ssl", False):
             if "ssl_crt" not in apiopts or "ssl_key" not in apiopts:
                 log.error(
-                    "Not starting Saline CherryPy Server. Options 'ssl_crt' and "
+                    "Not starting Saline Tornado Server. Options 'ssl_crt' and "
                     "'ssl_key' are required if SSL is not disabled."
                 )
                 return None
@@ -485,26 +475,7 @@ class CherryPySrv(SignalHandlingProcess):
         if "ssl_crt" in apiopts and "ssl_key" in apiopts:
             self.verify_certs(apiopts["ssl_crt"], apiopts["ssl_key"])
 
-            cherrypy.server.ssl_module = "builtin"
-            cherrypy.server.ssl_certificate = apiopts["ssl_crt"]
-            cherrypy.server.ssl_private_key = apiopts["ssl_key"]
-            if "ssl_chain" in apiopts.keys():
-                cherrypy.server.ssl_certificate_chain = apiopts["ssl_chain"]
-
-        # Prevent propagating CherryPy logging to main saline log
-        # in case if distinct log files specified in the config
-        if apiopts.get("log_access_file", None) is not None:
-            cherrypy.log.access_log.propagate = False
-        if apiopts.get("log_error_file", None) is not None:
-            cherrypy.log.error_log.propagate = False
-
-        try:
-            cherrypy.quickstart(root, apiopts.get("root_prefix", "/"), conf)
-        except Exception:  # pylint: disable=broad-except
-            log.critical(
-                "Suppressing most probably cosmetic exception: %s",
-                traceback.format_exc(),
-            )
+        restapi.start(self.opts)
 
     def verify_certs(self, *cert_files):
         """
@@ -516,10 +487,9 @@ class CherryPySrv(SignalHandlingProcess):
                 raise Exception("Could not find a certificate: {}".format(cert_file))
 
     def _handle_signals(self, signum, sigframe):
-        logging.raiseExceptions = False
-        self.stop_cherrypy()
+        self.stop_tornado()
         sys.exit(0)
 
-    @cherrypy.expose
-    def stop_cherrypy(self):
-        cherrypy.engine.exit()
+    def stop_tornado(self):
+        logging.raiseExceptions = False
+        restapi.stop()

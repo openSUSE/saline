@@ -1,129 +1,33 @@
-import cherrypy
-import functools
-import io
 import logging
 import os
-
-import salt.utils.json
-import salt.utils.yaml
+import ssl
+import tornado
+import tornado.log
+import tornado.web
 
 from threading import Thread
 from time import time, sleep
+from tornado.ioloop import IOLoop
 
-from salt.ext.tornado.iostream import StreamClosedError
-from salt.netapi.rest_cherrypy.app import cors_tool, hypermedia_in, hypermedia_out
-
+from tornado.iostream import StreamClosedError
+from salt.transport.ipc import IPCMessageSubscriber
+from salt.utils.asynchronous import current_ioloop as ctx_current_ioloop
 
 log = logging.getLogger(__name__)
 
 
-def html_override_tool():
-    """
-    Bypass the normal handler and serve HTML for all URLs
-
-    The ``app_path`` setting must be non-empty and the request must ask for
-    ``text/html`` in the ``Accept`` header.
-    """
-    apiopts = cherrypy.config["apiopts"]
-    request = cherrypy.request
-
-    url_blacklist = (
-        apiopts.get("app_path", "/app"),
-        apiopts.get("static_path", "/static"),
-    )
-
-    if "app" not in cherrypy.config["apiopts"]:
-        return
-
-    if request.path_info.startswith(url_blacklist):
-        return
-
-    if request.headers.get("Accept") == "*/*":
-        return
-
-    try:
-        wants_html = cherrypy.lib.cptools.accept("text/html")
-    except cherrypy.HTTPError:
-        return
-    else:
-        if wants_html != "text/html":
-            return
-
-    raise cherrypy.InternalRedirect(apiopts.get("app_path", "/app"))
-
-
-tools_config = {
-    "on_start_resource": [
-        ("html_override", html_override_tool),
-        #        ("salt_token", salt_token_tool),
-    ],
-    "before_request_body": [
-        ("cors_tool", cors_tool),
-        ("hypermedia_in", hypermedia_in),
-        #        ("salt_auth", salt_auth_tool),
-    ],
-    "before_handler": [
-        ("hypermedia_out", hypermedia_out),
-        #        ("lowdata_fmt", lowdata_fmt),
-        #        ("salt_ip_verify", salt_ip_verify_tool),
-    ],
-}
-
-for hook, tool_list in tools_config.items():
-    for idx, tool_config in enumerate(tool_list):
-        tool_name, tool_fn = tool_config
-        setattr(
-            cherrypy.tools, tool_name, cherrypy.Tool(hook, tool_fn, priority=(50 + idx))
-        )
-
-
-class MainAdapter:
-    """
-    The main entry point to Saline's REST API
-    """
-
-    exposed = True
-
-    _cp_config = {
-        "tools.hypermedia_out.on": True,
-        "tools.hypermedia_in.on": True,
-    }
-
-    def __init__(self):
-        self.opts = cherrypy.config["salineopts"]
-        self.apiopts = cherrypy.config["apiopts"]
-
-    def GET(self):
-        return {"return": "GET placeholder"}
-
-    def POST(self, **kwargs):
-        return {"return": "POST placeholder"}
-
-
-class MetricsAdapter:
-    """
-    The metrics entry point of Saline to use with Prometheus
-    """
-
-    exposed = True
-
-    def __init__(self):
-        self.opts = cherrypy.config["salineopts"]
-
-        self.channels_thread = Thread(target=self.run_channels)
-        self.channels_thread.start()
-
+class SalineChannels:
+    def __init__(self, opts):
+        self.opts = opts
         self.metrics_buf = None
-        self.metrics_last = time()
-        self.metrics_timeout = 120
+        self.metrics_last = None
+        self.metrics_timeout = opts.get("metrics_timeout", 120)
 
     def run_channels(self):
-        self.io_loop = salt.ext.tornado.ioloop.IOLoop()
+        self.io_loop = IOLoop.current()
         self.pub_uri = os.path.join(self.opts["sock_dir"], "publisher.ipc")
-        with salt.utils.asynchronous.current_ioloop(self.io_loop):
-            self.subscriber = salt.transport.ipc.IPCMessageSubscriber(
-                self.pub_uri, io_loop=self.io_loop
-            )
+        with ctx_current_ioloop(self.io_loop):
+            self.subscriber = IPCMessageSubscriber(self.pub_uri, io_loop=self.io_loop)
             self.subscriber.callbacks.add(self.channel_event_handler)
             for _ in range(5):
                 try:
@@ -131,113 +35,185 @@ class MetricsAdapter:
                     break
                 except StreamClosedError:
                     sleep(1)
-            self.io_loop.run_sync(self.subscriber.read_async)
+            self.io_loop.add_callback(self.subscriber.read_async)
 
     def channel_connected(self, _):
+        log.debug("Connected to Saline publisher channel")
         self.metrics_buf = ""
         self.metrics_last = time()
 
     def channel_event_handler(self, raw):
+        log.trace("Received from Saline publisher: %s", raw)
         if "metrics" in raw:
             self.metrics_buf = raw["metrics"]
             self.metrics_last = time()
 
-    def GET(self):
-        cherrypy.response.headers["Cache-Control"] = "no-cache"
-        cherrypy.response.headers[
-            "Content-Type"
-        ] = "text/plain;version=0.0.4;charset=utf-8"
 
-        if time() - self.metrics_last > self.metrics_timeout:
-            raise cherrypy.HTTPError(
-                500, f"No metrics update for more than {self.metrics_timeout} sec."
+class MetricsHandler(tornado.web.RequestHandler):  # pylint: disable=W0223
+    def get(self, _):  # pylint: disable=arguments-differ
+        if (
+            time() - self.application.channels.metrics_last
+            > self.application.channels.metrics_timeout
+        ):
+            log.error(
+                "No metrics update for more than %s sec.",
+                self.application.channels.metrics_timeout,
             )
+            self.send_error(500)
+            return
+        elif self.application.channels.metrics_buf is not None:
+            self.set_header("Cache-Control", "no-cache")
+            self.set_header("Content-Type", "text/plain;version=0.0.4;charset=utf-8")
+            self.write(self.application.channels.metrics_buf)
 
-        if self.metrics_buf is not None:
-            return self.metrics_buf
-
-        return ""
-
-
-class API:
-    """
-    Collect configuration and URL map for building the CherryPy app
-    """
-
-    url_map = {
-        "index": MainAdapter,
-        "metrics": MetricsAdapter,
-    }
-
-    def __init__(self):
-        self.opts = cherrypy.config["salineopts"]
-        self.apiopts = cherrypy.config["apiopts"]
-
-        for url, cls in self.url_map.items():
-            setattr(self, url, cls())
-
-    def get_conf(self):
-        """
-        Combine the CherryPy configuration with the saline restapi config values
-        pulled from the saline config and return the CherryPy configuration
-        """
-
-        conf = {
-            "global": {
-                "server.socket_host": self.apiopts.get("host", "0.0.0.0"),
-                "server.socket_port": self.apiopts.get("port", 8216),
-                "server.thread_pool": self.apiopts.get("thread_pool", 100),
-                "server.socket_queue_size": self.apiopts.get("queue_size", 30),
-                "max_request_body_size": self.apiopts.get(
-                    "max_request_body_size", 1048576
-                ),
-                "debug": self.apiopts.get("debug", False),
-                "log.access_file": self.apiopts.get("log_access_file", ""),
-                "log.error_file": self.apiopts.get("log_error_file", ""),
-            },
-            "/": {
-                "request.dispatch": cherrypy.dispatch.MethodDispatcher(),
-                "tools.trailing_slash.on": True,
-                "tools.gzip.on": True,
-                "tools.html_override.on": True,
-                "tools.cors_tool.on": True,
-            },
-        }
-
-        if "favicon" in self.apiopts:
-            conf["/favicon.ico"] = {
-                "tools.staticfile.on": True,
-                "tools.staticfile.filename": self.apiopts["favicon"],
-            }
-
-        if self.apiopts.get("debug", False) is False:
-            conf["global"]["environment"] = "production"
-
-        # Serve static media if the directory has been set in the configuration
-        if "static" in self.apiopts:
-            conf[self.apiopts.get("static_path", "/static")] = {
-                "tools.staticdir.on": True,
-                "tools.staticdir.dir": self.apiopts["static"],
-            }
-
-        # Add to global config
-        cherrypy.config.update(conf["global"])
-
-        return conf
+        self.finish()
 
 
 def get_app(opts):
     """
-    Returns a WSGI app and a configuration dictionary
+    Returns a Tornado Web APP
     """
 
-    apiopts = opts.get("restapi", {})
+    restapi_opts = opts.get("restapi", {})
 
-    # Add Saline and Saline API config options to the main CherryPy config dict
-    cherrypy.config["salineopts"] = opts
-    cherrypy.config["apiopts"] = apiopts
+    paths = [
+        (r"/metrics(/.*)?", MetricsHandler),
+    ]
 
-    root = API()  # cherrypy app
-    cpyopts = root.get_conf()  # cherrypy app opts
+    tornado_access_log = None
+    access_log_file = restapi_opts.get("log_access_file")
+    if access_log_file is not None:
+        access_log = logging.getLogger("tornado.access")
+        access_log.propagate = False
+        access_log.setLevel(logging.INFO)
+        access_log_handler = logging.FileHandler(access_log_file)
+        formatter = logging.Formatter(
+            restapi_opts.get(
+                "log_access_format",
+                "%(asctime)s %(message)s",
+            )
+        )
+        access_log_handler.setFormatter(formatter)
+        access_log.addHandler(access_log_handler)
+        tornado.log.enable_pretty_logging(logger=access_log)
 
-    return root, apiopts, cpyopts
+        def tornado_access_log(handler):
+            status = handler.get_status()
+            request_time = 1000.0 * handler.request.request_time()
+            log_level = logging.INFO
+            if status >= 500:
+                log_level = logging.ERROR
+            elif status >= 400:
+                log_level = logging.WARNING
+            access_log.log(
+                log_level,
+                '%s - %s "%s %s" %d %s "%s" %.2fms',
+                handler.request.remote_ip,
+                (
+                    handler.request.saline_user
+                    if hasattr(handler.request, "saline_user")
+                    and handler.request.saline_user
+                    else "-"
+                ),
+                handler.request.method,
+                handler.request.uri,
+                status,
+                handler._headers.get("Content-Length", "") or "-",
+                handler.request.headers.get("User-Agent", "") or "-",
+                request_time,
+            )
+
+    app = tornado.web.Application(
+        paths,
+        log_function=tornado_access_log,
+        debug=restapi_opts.get("debug", False),
+    )
+
+    app.channels = SalineChannels(opts)
+
+    return app
+
+
+def start(opts):
+    """
+    Start Tornado Web APP
+    """
+
+    restapi_opts = opts.get("restapi", {})
+
+    if "num_processes" not in restapi_opts:
+        restapi_opts["num_processes"] = 1
+
+    if restapi_opts["num_processes"] > 1 and restapi_opts.get("debug", False) is True:
+        raise Exception(
+            "Tornado's debug implementation is not compatible with multiprocess. "
+            "Either disable debug, or set num_processes to 1."
+        )
+
+    # the kwargs for the HTTPServer
+    kwargs = {}
+    if not restapi_opts.get("disable_ssl", False):
+        if "ssl_crt" not in restapi_opts:
+            log.error(
+                "Not starting '%s'. Options 'ssl_crt' and "
+                "'ssl_key' are required if SSL is not disabled.",
+            )
+
+            return None
+        # cert is required, key may be optional
+        # https://docs.python.org/2/library/ssl.html#ssl.wrap_socket
+        ssl_opts = {
+            "certfile": restapi_opts["ssl_crt"],
+            "ssl_version": ssl.PROTOCOL_TLS_SERVER,
+        }
+        if not os.path.exists(ssl_opts["certfile"]):
+            raise Exception(f"Could not find a certificate: {ssl_opts['certfile']}")
+        if restapi_opts.get("ssl_key", False):
+            ssl_opts.update({"keyfile": restapi_opts["ssl_key"]})
+            if not os.path.exists(ssl_opts["keyfile"]):
+                raise Exception(
+                    f"Could not find a certificate key: {ssl_opts['keyfile']}"
+                )
+        kwargs["ssl_options"] = ssl_opts
+
+    import tornado.httpserver
+
+    log.debug("Creating Tornado HTTP server ...")
+    app = get_app(opts)
+    http_server = tornado.httpserver.HTTPServer(app, **kwargs)
+    listen_port = restapi_opts.get("port", 8216)
+    listen_host = restapi_opts.get("host", "0.0.0.0")
+    try:
+        log.debug("Binding Tornado HTTP server to %s:%s ...", listen_host, listen_port)
+        http_server.bind(
+            listen_port,
+            address=listen_host,
+            backlog=restapi_opts.get("backlog", 128),
+        )
+        log.debug("Starting Tornado HTTP server ...")
+        http_server.start(restapi_opts["num_processes"])
+    except Exception:  # pylint: disable=broad-except
+        log.error(
+            "Tornado Web APP unable to bind to %s:%s",
+            listen_host,
+            listen_port,
+            exc_info=True,
+        )
+        raise SystemExit(1)
+
+    app.channels.run_channels()
+    try:
+        IOLoop.current().start()
+    except KeyboardInterrupt:
+        raise SystemExit(0)
+
+
+def stop():
+    """
+    Start Tornado Web APP
+    """
+
+    try:
+        IOLoop.current().stop()
+    except KeyboardInterrupt:
+        raise SystemExit(0)
