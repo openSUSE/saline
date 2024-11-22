@@ -2,7 +2,6 @@ import logging
 import os
 import pwd
 import signal
-import traceback
 
 from salt.cli.daemons import DaemonsMixin
 from salt.utils.process import HAS_PSUTIL, notify_systemd
