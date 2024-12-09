@@ -6,7 +6,6 @@ import os
 import re
 import signal
 import sys
-import traceback
 
 import salt.ext.tornado.gen
 import salt.transport.ipc
