@@ -1,4 +1,3 @@
-import atexit
 import cherrypy
 import contextlib
 import logging
@@ -8,11 +7,9 @@ import signal
 import sys
 
 import salt.ext.tornado.gen
-import salt.transport.ipc
 import salt.syspaths
 import salt.utils.files
 
-from cherrypy.process.wspbus import ChannelFailures
 from multiprocessing import Pipe, Queue
 from threading import Thread, Lock
 from time import time, sleep
@@ -23,6 +20,7 @@ from saline.data.event import EventParser
 from saline.data.merger import DataMerger
 
 from salt.ext.tornado.ioloop import IOLoop, PeriodicCallback
+from salt.transport.ipc import IPCMessagePublisher
 from salt.utils.event import get_event
 from salt.utils.process import (
     ProcessManager,
@@ -134,6 +132,7 @@ class EventsManager(SignalHandlingProcess):
         self._salt_events = None
 
         self._int_queue = []
+        self._int_queue_exit = False
 
         self._last_reconnect = 0
 
@@ -144,6 +143,8 @@ class EventsManager(SignalHandlingProcess):
             events_additional.append(re.compile(add_filter))
 
         while True:
+            if self._int_queue_exit:
+                break
             sleep(0.2)
             while self._int_queue:
                 tag, event = self._int_queue.pop(0)
@@ -229,6 +230,10 @@ class EventsManager(SignalHandlingProcess):
     def _handle_signals(self, signum, sigframe):
         if self._salt_events is not None:
             self._salt_events.close()
+        self.io_loop.stop()
+        if self._int_queue_thread is not None:
+            self._int_queue_exit = True
+            self._int_queue_thread = None
         sys.exit(0)
 
 
@@ -255,7 +260,7 @@ class DataManager(SignalHandlingProcess):
         self.metrics_epoch = None
         self.datamerger = None
 
-        self.server_thread = None
+        self.datamerger_thread = None
         self.maintenance_thread = None
 
         self._close_lock = Lock()
@@ -269,8 +274,9 @@ class DataManager(SignalHandlingProcess):
 
         self.datamerger = DataMerger(self.opts)
 
-        self.server_thread = Thread(target=self.start_server)
-        self.server_thread.start()
+        self._stop_datamerger = False
+        self.datamerger_thread = Thread(target=self.start_datamerger)
+        self.datamerger_thread.start()
 
         self._job_timeout_check_interval = self.opts.get(
             "job_timeout_check_interval", 120
@@ -286,17 +292,30 @@ class DataManager(SignalHandlingProcess):
         self.maintenance_thread = Thread(target=self.start_maintenance)
         self.maintenance_thread.start()
 
-        self.start_datamerger()
+        self.start_server()
 
     def _handle_signals(self, signum, sigframe):
-        # self.io_loop.stop()
+        self.stop_datamerger()
         self.stop_maintenance()
+        self.stop_server()
         sys.exit(0)
 
     def start_datamerger(self):
         while True:
-            data = self.queue.get()
+            if self._stop_datamerger:
+                break
+            try:
+                data = self.queue.get(timeout=0.2)
+            except QueueEmpty:
+                continue
+            except (ValueError, OSError):
+                break
             self.datamerger.add(data)
+
+    def stop_datamerger(self):
+        if self.datamerger_thread is not None:
+            self._stop_datamerger = True
+            self.datamerger_thread = None
 
     def start_maintenance(self):
         ts = time()
@@ -304,7 +323,7 @@ class DataManager(SignalHandlingProcess):
         run_job_metrics_update_after = ts + self._job_metrics_update_interval
         run_job_jids_cleanup_after = ts + self._job_jids_cleanup_interval
         while True:
-            sleep(1)
+            sleep(0.2)
             if self._maintenance_stop:
                 break
             ts = time()
@@ -321,27 +340,34 @@ class DataManager(SignalHandlingProcess):
     def stop_maintenance(self):
         if self.maintenance_thread is not None:
             self._maintenance_stop = True
-            self.maintenance_thread.join()
             self.maintenance_thread = None
 
     def start_server(self):
         self.io_loop = IOLoop()
         with salt.utils.asynchronous.current_ioloop(self.io_loop):
             pub_uri = os.path.join(self.opts["sock_dir"], "publisher.ipc")
-            self.publisher = salt.transport.ipc.IPCMessagePublisher(
+            self.publisher = IPCMessagePublisher(
                 {"ipc_write_buffer": self.opts.get("ipc_write_buffer", 0)},
                 pub_uri,
                 io_loop=self.io_loop,
             )
             with salt.utils.files.set_umask(0o177):
                 self.publisher.start()
-            atexit.register(self.close)
-            with contextlib.suppress(KeyboardInterrupt):
-                try:
-                    self.io_loop.run_sync(self.metrics_publisher)
-                finally:
-                    # Make sure the IO loop and respective sockets are closed and destroyed
-                    self.close()
+            self.io_loop.add_callback(self.metrics_publisher)
+            try:
+                self.io_loop.start()
+            except KeyboardInterrupt:
+                sys.exit(0)
+
+    def stop_server(self):
+        with self._close_lock:
+            if self.publisher is not None:
+                self.publisher.close()
+                self.publisher = None
+            if self.io_loop is not None:
+                self.io_loop.close()
+                self.io_loop.stop()
+                self.io_loop = None
 
     @salt.ext.tornado.gen.coroutine
     def metrics_publisher(self):
@@ -358,19 +384,6 @@ class DataManager(SignalHandlingProcess):
                 last_update = cur_time
                 self.publisher.publish({"metrics": self.datamerger.get_metrics()})
             yield salt.ext.tornado.gen.sleep(3)
-
-    def close(self):
-        try:
-            self._close_lock.acquire()
-            atexit.unregister(self.close)
-            if self.publisher is not None:
-                self.publisher.close()
-                self.publisher = None
-            if self.io_loop is not None:
-                self.io_loop.close()
-                self.io_loop = None
-        finally:
-            self._close_lock.release()
 
 
 class EventsReader(SignalHandlingProcess):
@@ -407,14 +420,14 @@ class EventsReader(SignalHandlingProcess):
         log.info("Running Saline Events Reader: %s", self.name)
 
         while True:
+            if self._exit:
+                break
             try:
-                event = self.req_queue.get(timeout=1)
+                event = self.req_queue.get(timeout=0.5)
             except QueueEmpty:
                 continue
             except (ValueError, OSError):
-                return
-            if self._exit:
-                return
+                break
             parsed_data = self.event_parser.parse(*event)
             if parsed_data is not None:
                 parsed_data["rix"] = self._idx
@@ -487,8 +500,7 @@ class CherryPySrv(SignalHandlingProcess):
 
         try:
             cherrypy.quickstart(root, apiopts.get("root_prefix", "/"), conf)
-        # except (ChannelFailures, TypeError):
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             log.critical(
                 "Suppressing most probably cosmetic exception: %s",
                 traceback.format_exc(),
