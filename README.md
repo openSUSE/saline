@@ -2,9 +2,12 @@
 
 ## Quick start
 
+IMPORTANT: This method is applicable only for non-containerized deployments (not recommended as Uyuni is released as containerized only now).
+For containerized deployments, check if installed `mgradm upgrade podman` has `--saline-replicas` parameter, if so, it can be set to `1` to deploy Saline.
+
 1. Add saline repository to the Uyuni server:
    ```
-   zypper ar https://download.opensuse.org/repositories/home:/vizhestkov:/saline-release/15.5/home:vizhestkov:saline-release.repo
+   zypper ar https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Master/openSUSE_Leap_15.6/systemsmanagement:Uyuni:Master.repo
    ```
 
 2. Install saline package to the Uyuni server:
