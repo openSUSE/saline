@@ -1,7 +1,7 @@
 #
 # spec file for package saline
 #
-# Copyright (c) 2024 SUSE LLC
+# Copyright (c) 2024-2025 SUSE LLC
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -62,7 +62,7 @@ Saline also exposes the metrics from salt events to provide more visible salt mo
 Summary:        The salt events collector and manager python module
 Group:          System/Management
 Requires:       %plainpython(abi) = %{python_version}
-Requires:       python-CherryPy
+Requires:       python-tornado
 Requires:       python-python-dateutil
 Requires:       python-salt
 Requires:       config(%{name}) = %{version}-%{release}
