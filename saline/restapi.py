@@ -80,12 +80,38 @@ def get_app(opts):
         (r"/metrics(/.*)?", MetricsHandler),
     ]
 
-    tornado_access_log = None
+    access_log = logging.getLogger("tornado.access")
+    access_log.propagate = False
+    access_log.setLevel(logging.INFO)
+
+    def tornado_access_log(handler):
+        status = handler.get_status()
+        request_time = 1000.0 * handler.request.request_time()
+        log_level = logging.INFO
+        if status >= 500:
+            log_level = logging.ERROR
+        elif status >= 400:
+            log_level = logging.WARNING
+        access_log.log(
+            log_level,
+            '%s - %s "%s %s" %d %s "%s" %.2fms',
+            handler.request.remote_ip,
+            (
+                handler.request.saline_user
+                if hasattr(handler.request, "saline_user")
+                and handler.request.saline_user
+                else "-"
+            ),
+            handler.request.method,
+            handler.request.uri,
+            status,
+            handler._headers.get("Content-Length", "") or "-",
+            handler.request.headers.get("User-Agent", "") or "-",
+            request_time,
+        )
+
     access_log_file = restapi_opts.get("log_access_file")
     if access_log_file is not None:
-        access_log = logging.getLogger("tornado.access")
-        access_log.propagate = False
-        access_log.setLevel(logging.INFO)
         access_log_handler = logging.FileHandler(access_log_file)
         formatter = logging.Formatter(
             restapi_opts.get(
@@ -93,35 +119,16 @@ def get_app(opts):
                 "%(asctime)s %(message)s",
             )
         )
-        access_log_handler.setFormatter(formatter)
-        access_log.addHandler(access_log_handler)
-        tornado.log.enable_pretty_logging(logger=access_log)
-
-        def tornado_access_log(handler):
-            status = handler.get_status()
-            request_time = 1000.0 * handler.request.request_time()
-            log_level = logging.INFO
-            if status >= 500:
-                log_level = logging.ERROR
-            elif status >= 400:
-                log_level = logging.WARNING
-            access_log.log(
-                log_level,
-                '%s - %s "%s %s" %d %s "%s" %.2fms',
-                handler.request.remote_ip,
-                (
-                    handler.request.saline_user
-                    if hasattr(handler.request, "saline_user")
-                    and handler.request.saline_user
-                    else "-"
-                ),
-                handler.request.method,
-                handler.request.uri,
-                status,
-                handler._headers.get("Content-Length", "") or "-",
-                handler.request.headers.get("User-Agent", "") or "-",
-                request_time,
+    else:
+        access_log_handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            restapi_opts.get(
+                "log_access_format",
+                "[%(levelname)-8s] %(message)s",
             )
+        )
+    access_log_handler.setFormatter(formatter)
+    access_log.addHandler(access_log_handler)
 
     app = tornado.web.Application(
         paths,
