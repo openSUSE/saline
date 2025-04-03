@@ -7,12 +7,6 @@ prometheus:
     $default: false
     $help: Add scrape configuration of Saline to Prometheus
 
-  saline_port:
-    $type: number
-    $name: Saline port number
-    $default: 8216
-    $help: Saline port number to requests the metrics from
-
   saline_https_connection:
     $type: boolean
     $name: Saline secure connection (HTTPS)
