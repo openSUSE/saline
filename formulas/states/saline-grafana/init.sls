@@ -1,7 +1,7 @@
 {%- if salt['pillar.get']('mgr_server_is_uyuni', True) %}
   {% set product_name = 'Uyuni' %}
 {%- else %}
-  {% set product_name = 'SUSE Manager' %}
+  {% set product_name = 'SUSE Multi-Linux Manager' %}
 {%- endif %}
 
 {%- if salt['pillar.get']('saline_grafana:dashboards:add_uyuni_saline_dashboard', False) %}
