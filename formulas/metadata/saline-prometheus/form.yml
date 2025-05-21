@@ -13,6 +13,12 @@ prometheus:
     $default: true
     $help: Use HTTPS to connect to Saline
 
+  saline_metrics_path:
+    $type: text
+    $name: Path to Saline metrics
+    $default: /saline/metrics
+    $help: Path to Saline metrics to retrive the data from
+
   scrape_configs:
     $type: edit-group
     $visible: false
