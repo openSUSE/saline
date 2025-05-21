@@ -6,10 +6,14 @@ saline-prometheus-cfg:
       - targets:
         - {{ salt['pillar.get']('mgr_server') }}
         labels:
-          __metrics_path__: /saline/metrics
+          __metrics_path__: {{ salt['pillar.get']('prometheus:saline_metrics_path') }}
 {%- if salt['pillar.get']('prometheus:saline_https_connection', False) %}
           __scheme__: https
 {% endif %}
   - require_in:
     - file: config_file
+{%- else %}
+saline-prometheus-cfg:
+  file.absent:
+  - name: /etc/prometheus/saline.yml
 {%- endif %}
