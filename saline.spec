@@ -83,14 +83,14 @@ Saline is an extension for Salt providing an extra control of state apply proces
 Saline also exposes the metrics from salt events to provide more visible salt monitoring.
 
 %package formula
-Summary:        Saline salt formula for Uyuni/SUSE Multi-Linux Manager
+Summary:        Saline salt formula%{?productprettyname: for %productprettyname}
 Group:          System/Management
 Requires:       grafana-formula
 Requires:       prometheus-exporters-formula
 
 %description formula
-Saline salt formula for Uyuni/SUSE Multi-Linux Manager
-with exporters configuration and dashboards.
+Saline salt formula%{?productprettyname: for %productprettyname}.
+Provides formulas for Prometheus exporters and Grafana dashboards configuration.
 
 %prep
 %autosetup -n %{name}-%{version}
