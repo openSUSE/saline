@@ -209,6 +209,9 @@ class EventsManager(SignalHandlingProcess):
         log.debug("Reading the config: %s", conf_path)
         self.mopts = salt.config.client_config(conf_path)
 
+        # Enforce a safe serialization protocol (bsc#1246941)
+        self.mopts["serial"] = "msgpack"
+
         log.debug(
             "Starting reading salt events from: %s (%s)",
             self.mopts["sock_dir"],
