@@ -135,6 +135,8 @@ class EventsManager(SignalHandlingProcess):
 
         self._last_reconnect = 0
 
+        self._show_connected = False
+
     def process_events(self):
         events_filter_re = re.compile(self.opts["events_regex_filter"])
         events_additional = []
@@ -194,8 +196,12 @@ class EventsManager(SignalHandlingProcess):
             and self._last_reconnect + 10 < time()
         ):
             log.warning("Event subscriber stream is not connected. Reconnecting...")
+            self._show_connected = True
             self._last_reconnect = time()
             self._init_event_bus()
+        elif self.event_bus.subscriber.connected() and self._show_connected:
+            self._show_connected = False
+            log.info("Event subscriber stream connection restored.")
 
     def run(self):
         """
