@@ -5,7 +5,7 @@
         "builtIn": 1,
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "${DS_PROMETHEUS}"
         },
         "enable": true,
         "hide": true,
@@ -1704,7 +1704,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1967,10 +1967,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "rate(salt_events_total{instance=~\"$server:443\"}[5m])",
+          "expr": "rate(salt_events_total{instance=~\"$server:$saline_port\"}[5m])",
           "legendFormat": "Salt events",
           "range": true,
           "refId": "SaltEvents"
@@ -1978,10 +1978,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(salt_events_tags_funcs{instance=\"$server:443\",tag=\"salt/job/*/new\",fun=~\"state.*\"}[5m]))",
+          "expr": "sum(rate(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=\"salt/job/*/new\",fun=~\"state.*\"}[5m]))",
           "hide": false,
           "legendFormat": "States apply requests",
           "range": true,
@@ -1990,10 +1990,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(salt_events_tags_funcs{instance=\"$server:443\",tag=\"salt/job/*/ret/*\",fun=~\"state.*\"}[5m]))",
+          "expr": "sum(rate(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=\"salt/job/*/ret/*\",fun=~\"state.*\"}[5m]))",
           "hide": false,
           "legendFormat": "States applied",
           "range": true,
@@ -2002,10 +2002,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "rate(salt_events_tags_funcs{instance=\"$server:443\",tag=\"salt/job/*/new\",fun=\"test.ping\"}[5m])",
+          "expr": "rate(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=\"salt/job/*/new\",fun=\"test.ping\"}[5m])",
           "hide": false,
           "legendFormat": "Test ping requests",
           "range": true,
@@ -2014,10 +2014,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "rate(salt_events_tags_funcs{instance=\"$server:443\",tag=\"salt/job/*/ret/*\",fun=\"test.ping\"}[5m])",
+          "expr": "rate(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=\"salt/job/*/ret/*\",fun=\"test.ping\"}[5m])",
           "hide": false,
           "legendFormat": "Test ping returns",
           "range": true,
@@ -2026,10 +2026,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "rate(salt_events_tags_funcs{instance=\"$server:443\",tag=\"salt/job/*/new\",fun=\"mgractionchains.resume\"}[5m])",
+          "expr": "rate(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=\"salt/job/*/new\",fun=\"mgractionchains.resume\"}[5m])",
           "hide": false,
           "legendFormat": "Action chains resume requests",
           "range": true,
@@ -2038,10 +2038,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "rate(salt_events_tags_funcs{instance=\"$server:443\",tag=\"salt/job/*/ret/*\",fun=\"mgractionchains.resume\"}[5m])",
+          "expr": "rate(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=\"salt/job/*/ret/*\",fun=\"mgractionchains.resume\"}[5m])",
           "hide": false,
           "legendFormat": "Action chains resume returns",
           "range": true,
@@ -2050,10 +2050,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "rate(salt_events_tags_funcs{instance=\"$server:443\",tag=\"salt/job/*/new\",fun=\"saltutil.find_job\"}[5m])",
+          "expr": "rate(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=\"salt/job/*/new\",fun=\"saltutil.find_job\"}[5m])",
           "hide": false,
           "legendFormat": "Find job requests",
           "range": true,
@@ -2062,10 +2062,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "rate(salt_events_tags_funcs{instance=\"$server:443\",tag=\"salt/job/*/ret/*\",fun=\"saltutil.find_job\"}[5m])",
+          "expr": "rate(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=\"salt/job/*/ret/*\",fun=\"saltutil.find_job\"}[5m])",
           "hide": false,
           "legendFormat": "Find job returns",
           "range": true,
@@ -2074,11 +2074,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(rate(salt_events_tags_funcs{instance=\"$server:443\",tag=\"salt/job/*/new\",fun=~\"grains.*\"}[5m]))",
+          "expr": "sum(rate(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=\"salt/job/*/new\",fun=~\"grains.*\"}[5m]))",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -2089,10 +2089,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(salt_events_tags_funcs{instance=\"$server:443\",tag=\"salt/job/*/ret/*\",fun=~\"grains.*\"}[5m]))",
+          "expr": "sum(rate(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=\"salt/job/*/ret/*\",fun=~\"grains.*\"}[5m]))",
           "hide": false,
           "legendFormat": "Grains returns",
           "range": true,
@@ -2101,10 +2101,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "rate(salt_events_tags{instance=\"$server:443\",tag=\"salt/batch/*/start\"}[5m])",
+          "expr": "rate(salt_events_tags{instance=\"$server:$saline_port\",tag=\"salt/batch/*/start\"}[5m])",
           "hide": false,
           "legendFormat": "Salt batch start",
           "range": true,
@@ -2113,10 +2113,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "rate(salt_events_tags{instance=\"$server:443\",tag=\"salt/batch/*/done\"}[5m])",
+          "expr": "rate(salt_events_tags{instance=\"$server:$saline_port\",tag=\"salt/batch/*/done\"}[5m])",
           "hide": false,
           "legendFormat": "Salt batch done",
           "range": true,
@@ -2125,10 +2125,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "rate(salt_events_tags{instance=\"$server:443\",tag=\"salt/auth\"}[5m])",
+          "expr": "rate(salt_events_tags{instance=\"$server:$saline_port\",tag=\"salt/auth\"}[5m])",
           "hide": false,
           "legendFormat": "Salt auth",
           "range": true,
@@ -2137,10 +2137,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sgn(round(increase(salt_events_tags_funcs{instance=\"$server:443\",tag=\"salt/key\",fun=\"delete\"}[$__rate_interval]))) * 3",
+          "expr": "sgn(round(increase(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=\"salt/key\",fun=\"delete\"}[$__rate_interval]))) * 3",
           "hide": false,
           "legendFormat": "Salt key delete",
           "range": true,
@@ -2149,10 +2149,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sgn(round(increase(salt_events_trimmed_total{instance=\"$server:443\"}[$__rate_interval]))) * 5",
+          "expr": "sgn(round(increase(salt_events_trimmed_total{instance=\"$server:$saline_port\"}[$__rate_interval]))) * 5",
           "hide": false,
           "legendFormat": "Values trimmed",
           "range": true,
@@ -2166,7 +2166,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "description": "",
       "fieldConfig": {
@@ -2348,11 +2348,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "salt_minions{instance=\"$server:443\",status=\"seen\"}",
+          "expr": "salt_minions{instance=\"$server:$saline_port\",status=\"seen\"}",
           "instant": false,
           "legendFormat": "seen",
           "range": true,
@@ -2361,11 +2361,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "salt_minions{instance=\"$server:443\",status=\"active_1m\"}",
+          "expr": "salt_minions{instance=\"$server:$saline_port\",status=\"active_1m\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "active 1m",
@@ -2375,11 +2375,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "salt_minions{instance=\"$server:443\",status=\"active_5m\"}",
+          "expr": "salt_minions{instance=\"$server:$saline_port\",status=\"active_5m\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "active 5m",
@@ -2389,11 +2389,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "salt_minions{instance=\"$server:443\",status=\"active_15m\"}",
+          "expr": "salt_minions{instance=\"$server:$saline_port\",status=\"active_15m\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "active 15m",
@@ -2403,11 +2403,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "salt_minions{instance=\"$server:443\",status=\"active_1h\"}",
+          "expr": "salt_minions{instance=\"$server:$saline_port\",status=\"active_1h\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "active 1h",
@@ -2417,11 +2417,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "salt_minions{instance=\"$server:443\",status=\"active_ever\"}",
+          "expr": "salt_minions{instance=\"$server:$saline_port\",status=\"active_ever\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "active ever",
@@ -2431,11 +2431,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "salt_minions{instance=\"$server:443\",status=\"offline\"}",
+          "expr": "salt_minions{instance=\"$server:$saline_port\",status=\"offline\"}",
           "hide": false,
           "instant": false,
           "legendFormat": "offline",
@@ -2449,7 +2449,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -2537,10 +2537,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "round(increase(salt_events_tags_funcs{instance=\"$server:443\",tag=~\"salt/job/\\\\*/new|salt/batch/\\\\*/start|salt/wheel/\\\\*/new\"}[$__rate_interval]))",
+          "expr": "round(increase(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=~\"salt/job/\\\\*/new|salt/batch/\\\\*/start|salt/wheel/\\\\*/new\"}[$__rate_interval]))",
           "interval": "2m",
           "legendFormat": "tag:{{tag}} fun:{{fun}}",
           "range": true,
@@ -2549,10 +2549,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "round(increase(salt_events_tags_funcs{instance=\"$server:443\",tag=~\"salt/job/\\\\*/ret/\\\\*|salt/batch/\\\\*/done|salt/wheel/\\\\*/ret|salt/auth\"}[$__rate_interval]))",
+          "expr": "round(increase(salt_events_tags_funcs{instance=\"$server:$saline_port\",tag=~\"salt/job/\\\\*/ret/\\\\*|salt/batch/\\\\*/done|salt/wheel/\\\\*/ret|salt/auth\"}[$__rate_interval]))",
           "hide": false,
           "interval": "2m",
           "legendFormat": "tag:{{tag}} fun:{{fun}}",
@@ -2566,7 +2566,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -2707,10 +2707,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "round(sum(increase(salt_state_applies_status{instance=\"$server:443\",status=~\"succeeded.*\"}[$__rate_interval])))",
+          "expr": "round(sum(increase(salt_state_applies_status{instance=\"$server:$saline_port\",status=~\"succeeded.*\"}[$__rate_interval])))",
           "hide": false,
           "interval": "2m",
           "legendFormat": "States succeeded",
@@ -2720,10 +2720,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "round(sum(increase(salt_state_applies_status{instance=\"$server:443\",status=~\"failed.*\"}[$__rate_interval])))",
+          "expr": "round(sum(increase(salt_state_applies_status{instance=\"$server:$saline_port\",status=~\"failed.*\"}[$__rate_interval])))",
           "hide": false,
           "interval": "2m",
           "legendFormat": "States failed",
@@ -2733,10 +2733,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "round(sum(increase(salt_state_applies_status{instance=\"$server:443\",status=~\".*_warnings\"}[$__rate_interval])))",
+          "expr": "round(sum(increase(salt_state_applies_status{instance=\"$server:$saline_port\",status=~\".*_warnings\"}[$__rate_interval])))",
           "hide": false,
           "interval": "2m",
           "legendFormat": "States warnings",
@@ -2746,10 +2746,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "round(sum(increase(salt_state_applies_status{instance=\"$server:443\",status=\"errors\"}[$__rate_interval])))",
+          "expr": "round(sum(increase(salt_state_applies_status{instance=\"$server:$saline_port\",status=\"errors\"}[$__rate_interval])))",
           "hide": false,
           "interval": "2m",
           "legendFormat": "States errors",
@@ -2759,10 +2759,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "round(sum(increase(salt_state_applies_status{instance=\"$server:443\",status=\"test\"}[$__rate_interval])))",
+          "expr": "round(sum(increase(salt_state_applies_status{instance=\"$server:$saline_port\",status=\"test\"}[$__rate_interval])))",
           "hide": false,
           "interval": "2m",
           "legendFormat": "States test",
@@ -2771,6 +2771,192 @@
         }
       ],
       "title": "Salt States",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 65
+      },
+      "id": 74,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "increase(salt_master_stats_runs{instance=\"$server:$saline_port\"}[$__rate_interval])",
+          "legendFormat": "{{cmd}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Salt Master Stats (runs)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 75
+      },
+      "id": 75,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "salt_master_stats_mean{instance=\"$server:$saline_port\"}",
+          "legendFormat": "{{cmd}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Salt Master Stats (avg. duration)",
       "type": "timeseries"
     },
     {
@@ -2783,7 +2969,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 65
+        "y": 85
       },
       "id": 33,
       "panels": [],
@@ -2815,7 +3001,7 @@
         "h": 6,
         "w": 8,
         "x": 0,
-        "y": 66
+        "y": 86
       },
       "hiddenSeries": false,
       "id": 23,
@@ -2941,7 +3127,7 @@
         "h": 6,
         "w": 8,
         "x": 8,
-        "y": 66
+        "y": 86
       },
       "hiddenSeries": false,
       "id": 31,
@@ -3213,7 +3399,7 @@
         "h": 6,
         "w": 8,
         "x": 16,
-        "y": 66
+        "y": 86
       },
       "id": 21,
       "interval": "2s",
@@ -3365,7 +3551,7 @@
         "h": 6,
         "w": 8,
         "x": 0,
-        "y": 72
+        "y": 92
       },
       "id": 48,
       "interval": "2s",
@@ -3550,7 +3736,7 @@
         "h": 6,
         "w": 8,
         "x": 8,
-        "y": 72
+        "y": 92
       },
       "id": 51,
       "links": [],
@@ -3656,7 +3842,7 @@
         "h": 6,
         "w": 8,
         "x": 16,
-        "y": 72
+        "y": 92
       },
       "hiddenSeries": false,
       "id": 61,
@@ -3820,8 +4006,8 @@
       {
         "current": {
           "selected": false,
-          "text": "vz-uyuni-srv.tf.local",
-          "value": "vz-uyuni-srv.tf.local"
+          "text": "mgr-server",
+          "value": "mgr-server"
         },
         "datasource": {
           "type": "prometheus",
@@ -3855,9 +4041,16 @@
         "type": "constant"
       },
       {
+        "hide": 2,
+        "name": "saline_port",
+        "query": "443",
+        "skipUrlSync": false,
+        "type": "constant"
+      },
+      {
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "${DS_PROMETHEUS}"
         },
         "filters": [],
         "hide": 0,
@@ -3902,4 +4095,3 @@
   "version": 190,
   "weekStart": ""
 }
-
