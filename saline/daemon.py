@@ -78,10 +78,19 @@ class Saline(SalineOptionParser, DaemonsMixin):
 
         sock_dir = self.config["sock_dir"]
         if not os.path.isdir(sock_dir):
+            original_umask = -1
             try:
-                os.makedirs(sock_dir, 0o755)
+                # Prevent IPC sock dir hijacking on service start (bsc#1247015)
+                # Temporarily set a restrictive umask to ensure owner-only permissions
+                original_umask = os.umask(0o077)   # Restricts permissions to the owner
+                os.makedirs(sock_dir, 0o700)       # Explicitly create with owner-only rwx
             except OSError as exc:
-                log.error("Could not create SOCK_DIR: %s", exc)
+                log.error("Could not create SOCK_DIR %s: %s", sock_dir, exc)
+                self.shutdown(2)
+            finally:
+                # Always restore the original umask
+                if original_umask != -1:
+                    os.umask(original_umask)
 
         saline_user = self.config["user"]
         if saline_user != get_user():
