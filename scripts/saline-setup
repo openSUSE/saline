@@ -2,7 +2,7 @@
 
 SELF=$(basename $0)
 
-PRODUCT_NAME="$(python3 -c 'from spacewalk.common.rhnConfig import PRODUCT_NAME; print(PRODUCT_NAME)')"
+PRODUCT_NAME="$(python3 -c 'from spacewalk.common.rhnConfig import PRODUCT_NAME; print(PRODUCT_NAME)' 2> /dev/null || echo 'n/a')"
 
 SALINE_USER="salt"
 SALINE_LISTEN_HOST="0.0.0.0"
@@ -197,9 +197,18 @@ ssl_files_update() {
 
     if [ $check -eq 0 ]; then
         if [ ! -f "${SALINE_SSL_DEST_PATH}/${SALINE_SSL_CERT_FILE}" -o ! -f "${SALINE_SSL_DEST_PATH}/${SALINE_SSL_KEY_FILE}" ]; then
-            if [ -z "${SALINE_SSL_CERT}${SALINE_SSL_KEY}" ] && ask_yn "There are no SSL certificate and key specified. Do you want to use the SSL certificate and the key from ${PRODUCT_NAME}?"; then
-                SALINE_SSL_CERT="${UYUNI_DEFAULT_SSL_CERT}"
-                SALINE_SSL_KEY="${UYUNI_DEFAULT_SSL_KEY}"
+            if [ "${PRODUCT_NAME}" = "n/a" ]; then
+                cat << EOF >&2
+Error: Thre are no SSL certificate and key specified.
+       Neither Uyuni or SUSE Multi Linux Manager installed to copy the certificate and key from.
+       You can either specify valid pathes for certificate and key or not to use SSL (with -I, but IT'S INSECURE!).
+EOF
+                exit 3
+            else
+                if [ -z "${SALINE_SSL_CERT}${SALINE_SSL_KEY}" ] && ask_yn "There are no SSL certificate and key specified. Do you want to use the SSL certificate and the key from ${PRODUCT_NAME}?"; then
+                    SALINE_SSL_CERT="${UYUNI_DEFAULT_SSL_CERT}"
+                    SALINE_SSL_KEY="${UYUNI_DEFAULT_SSL_KEY}"
+                fi
             fi
         fi
         if [ -n "${SALINE_SSL_CERT}" -a ! -f "${SALINE_SSL_CERT}" ]; then
