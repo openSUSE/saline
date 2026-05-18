@@ -229,9 +229,7 @@ class EventsManager(SignalHandlingProcess):
 
         self.io_loop = IOLoop(make_current=True)
         self._init_event_bus()
-        self._check_connected_cb = PeriodicCallback(
-            self._check_connected, 3000, io_loop=self.io_loop
-        )
+        self._check_connected_cb = PeriodicCallback(self._check_connected, 3000)
         self._check_connected_cb.start()
         self.io_loop.start()
 
