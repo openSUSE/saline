@@ -4,21 +4,21 @@ import os
 import re
 import signal
 import sys
+import tornado.gen
 
-import salt.ext.tornado.gen
 import salt.syspaths
 import salt.utils.files
 
 from multiprocessing import Pipe, Queue
 from threading import Thread, Lock
 from time import time, sleep
+from tornado.ioloop import IOLoop, PeriodicCallback
 from queue import Empty as QueueEmpty
 
 from saline import restapi
 from saline.data.event import EventParser
 from saline.data.merger import DataMerger
 
-from salt.ext.tornado.ioloop import IOLoop, PeriodicCallback
 from salt.transport.ipc import IPCMessagePublisher
 from salt.utils.event import get_event
 from salt.utils.process import (
@@ -168,7 +168,7 @@ class EventsManager(SignalHandlingProcess):
 
                 log.debug("The event tag doesn't match the event filter: %s", tag)
 
-    @salt.ext.tornado.gen.coroutine
+    @tornado.gen.coroutine
     def enqueue_event(self, raw):
         try:
             self._int_queue.append(self.event_bus.unpack(raw))
@@ -189,7 +189,7 @@ class EventsManager(SignalHandlingProcess):
         )
         self.event_bus.set_event_handler(self.enqueue_event)
 
-    @salt.ext.tornado.gen.coroutine
+    @tornado.gen.coroutine
     def _check_connected(self):
         if (
             not self.event_bus.subscriber.connected()
@@ -375,7 +375,7 @@ class DataManager(SignalHandlingProcess):
                 self.io_loop.stop()
                 self.io_loop = None
 
-    @salt.ext.tornado.gen.coroutine
+    @tornado.gen.coroutine
     def metrics_publisher(self):
         last_update = time()
         while True:
@@ -389,7 +389,7 @@ class DataManager(SignalHandlingProcess):
                 self.metrics_epoch = epoch
                 last_update = cur_time
                 self.publisher.publish({"metrics": self.datamerger.get_metrics()})
-            yield salt.ext.tornado.gen.sleep(3)
+            yield tornado.gen.sleep(3)
 
 
 class EventsReader(SignalHandlingProcess):
